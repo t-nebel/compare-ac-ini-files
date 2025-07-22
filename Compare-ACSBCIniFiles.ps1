@@ -20,12 +20,12 @@
     The name to use for the second SBC in the report. Defaults to "SBC2".
 
 .PARAMETER ReportFilePath
-    The path where the HTML report will be saved. Defaults to "SBC-Compare-Report.html".
+    The path where the HTML report will be saved. Defaults to "SBC-Compare-Report.html" in the current directory.
 
 .EXAMPLE
-    .\Compare-ACSBCIniFiles.ps1 -SBCIniFilePath1 "C:\Temp\SBC1.ini" -SBCName1 "PROD-SBC" -SBCIniFilePath2 "C:\Temp\SBC2.ini" -SBCName2 "DR-SBC"
+    .\Compare-ACSBCIniFiles.ps1 -SBCIniFilePath1 "C:\Temp\SBC1.ini" -SBCName1 "PROD-SBC" -SBCIniFilePath2 "C:\Temp\SBC2.ini" -SBCName2 "DR-SBC" -ReportFilePath "C:\Temp\SBC-Compare-Report.html"
 
-    Compares the INI files from PROD-SBC and DR-SBC and generates an HTML report of differences.
+    Compares the INI files from PROD-SBC and DR-SBC and generates an HTML report of differences. The report will be saved to "C:\Temp\SBC-Compare-Report.html".
 #>
 
 param (
@@ -38,9 +38,8 @@ param (
     [Parameter(Mandatory = $true)]
     $SBCName2 = "SBC2",
     [Parameter(Mandatory = $false)]
-    $ReportFilePath = "SBC-Compare-Report.html"
+    $reportFilePath = (Join-Path -Path ((Get-Location).Path) -ChildPath "SBC-Compare-Report.html")
 )
-
 ########################################################################
 #region Functions
 ########################################################################
