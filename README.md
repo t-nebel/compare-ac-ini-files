@@ -20,7 +20,7 @@ If you've worked with AudioCodes SBCs, you know comparing INI configuration file
 This script simplifies comparing AudioCodes SBC INI files by:
 
 - Parsing the structured format
-- Identifying variances in sections like IpProfile or SIPInterface
+- Identifying variances in sections like IP Profiles
 - Generating a clean HTML report highlighting differences
 
 ### Features
@@ -40,9 +40,9 @@ This script simplifies comparing AudioCodes SBC INI files by:
 ```powershell
 .\Compare-ACSBCIniFiles.ps1  `
     -SBCIniFilePath1 "C:\Temp\SBC1.ini"  `
-    -SBCName1 "PROD-SBC" `
+    -SBCName1 "Old Config File" `
     -SBCIniFilePath2 "C:\Temp\SBC2.ini" `
-    -SBCName2 "DR-SBC" `
+    -SBCName2 "New Config File" `
     -ReportFilePath "C:\Temp\SBC-Comparison.html"
 ```
 
