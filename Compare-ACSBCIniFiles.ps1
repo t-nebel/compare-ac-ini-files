@@ -38,7 +38,7 @@ param (
     [Parameter(Mandatory = $true)]
     $SBCName2 = "SBC2",
     [Parameter(Mandatory = $false)]
-    $reportFilePath = (Join-Path -Path ((Get-Location).Path) -ChildPath "SBC-Compare-Report.html")
+    $ReportFilePath = (Join-Path -Path ((Get-Location).Path) -ChildPath "SBC-Compare-Report.html")
 )
 ########################################################################
 #region Functions
