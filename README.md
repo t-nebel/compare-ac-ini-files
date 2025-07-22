@@ -43,7 +43,7 @@ This script simplifies comparing AudioCodes SBC INI files by:
     -SBCName1 "PROD-SBC" `
     -SBCIniFilePath2 "C:\Temp\SBC2.ini" `
     -SBCName2 "DR-SBC" `
-    -OutputFilePath "C:\Temp\SBC-Comparison.html"
+    -ReportFilePath "C:\Temp\SBC-Comparison.html"
 ```
 
 ## 📊 Sample Output
@@ -60,7 +60,7 @@ The script generates an HTML report highlighting all differences found between t
 | SBCName1 | Display name for first SBC (used in the report) |
 | SBCIniFilePath2 | Path to second INI file |
 | SBCName2 | Display name for second SBC (used in the report) |
-| OutputFilePath | Path where the HTML report should be saved |
+| ReportFilePath | Path where the HTML report should be saved |
 
 ## 🚀 Getting Started
 
