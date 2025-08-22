@@ -22,10 +22,19 @@
 .PARAMETER ReportFilePath
     The path where the HTML report will be saved. Defaults to "SBC-Compare-Report.html" in the current directory.
 
+.PARAMETER IncludeNameValidation
+    When set to $true, table entries with the same Index will also be compared by their name (first column after Index).
+    This enables secondary comparison based on the ProfileName for tables like IpProfile. Defaults to $false.
+
 .EXAMPLE
     .\Compare-ACSBCIniFiles.ps1 -SBCIniFilePath1 "C:\Temp\SBC1.ini" -SBCName1 "PROD-SBC" -SBCIniFilePath2 "C:\Temp\SBC2.ini" -SBCName2 "DR-SBC" -ReportFilePath "C:\Temp\SBC-Compare-Report.html"
 
     Compares the INI files from PROD-SBC and DR-SBC and generates an HTML report of differences. The report will be saved to "C:\Temp\SBC-Compare-Report.html".
+
+.EXAMPLE
+    .\Compare-ACSBCIniFiles.ps1 -SBCIniFilePath1 "C:\Temp\Original.ini" -SBCIniFilePath2 "C:\Temp\Abweichung.ini" -IncludeNameValidation $true
+
+    Compares the INI files with name validation enabled, which will also compare table entries by their name (ProfileName) in addition to Index.
 #>
 
 param (
@@ -38,7 +47,9 @@ param (
     [Parameter(Mandatory = $true)]
     $SBCName2 = "SBC2",
     [Parameter(Mandatory = $false)]
-    $ReportFilePath = (Join-Path -Path ((Get-Location).Path) -ChildPath "SBC-Compare-Report.html")
+    $ReportFilePath = (Join-Path -Path ((Get-Location).Path) -ChildPath "SBC-Compare-Report.html"),
+    [Parameter(Mandatory = $false)]
+    [bool]$IncludeNameValidation = $false
 )
 ########################################################################
 #region Functions
@@ -230,6 +241,11 @@ if ($sectionsOnlyInSBC2) {
 #region 3. Compare content of  sections
 #############################################
 Write-Output "`n--- Comparing Content of  Sections ---"
+if ($IncludeNameValidation) {
+    Write-Host "ℹ️  Name validation is ENABLED - Table entries will also be compared by name if indices differ" -ForegroundColor Cyan
+} else {
+    Write-Host "ℹ️  Name validation is DISABLED - Table entries will only be compared by index" -ForegroundColor Gray
+}
 $commonSections = $sectionComparison | Where-Object { $_.SideIndicator -eq '==' } | ForEach-Object { $_.InputObject }
 
 foreach ($sectionName in $commonSections) {
@@ -299,19 +315,43 @@ foreach ($sectionName in $commonSections) {
             $missmatchedIndexes1 = $indexValues1 | Where-Object { -not ($indexValues2 -contains $_) }
             if ($missmatchedIndexes1) {
                 foreach ($index in $missmatchedIndexes1) {
-                    $message = "Section row with Index '<b>$($index)</b>', $($currentSectionTableName) '<b>$((($content1 | Where-Object Index -like $index ).$currentSectionTableName))</b>' only exists in <b>$SBCName1</b>"
-                    Write-Warning "Row with Index: '$($index)' and $($currentSectionTableName): '$((($content1 | Where-Object Index -like $index ).$currentSectionTableName))' only exists in $($SBCName1)"
-                    $sectionDifferences.Add($message) | Out-Null
-                    $hasTableDiff = $true
+                    # If IncludeNameValidation is enabled, check if this entry can be matched by name before reporting as missing
+                    $skipMissingReport = $false
+                    if ($IncludeNameValidation) {
+                        $entryName = ($content1 | Where-Object { $_.Index -eq $index }).$currentSectionTableName
+                        $nameValues2 = $content2 | ForEach-Object { $_.$currentSectionTableName }
+                        if ($nameValues2 -contains $entryName) {
+                            $skipMissingReport = $true
+                        }
+                    }
+
+                    if (-not $skipMissingReport) {
+                        $message = "Section row with Index '<b>$($index)</b>', $($currentSectionTableName) '<b>$((($content1 | Where-Object Index -like $index ).$currentSectionTableName))</b>' only exists in <b>$SBCName1</b>"
+                        Write-Warning "Row with Index: '$($index)' and $($currentSectionTableName): '$((($content1 | Where-Object Index -like $index ).$currentSectionTableName))' only exists in $($SBCName1)"
+                        $sectionDifferences.Add($message) | Out-Null
+                        $hasTableDiff = $true
+                    }
                 }
             }
             $missmatchedIndexes2 = $indexValues2 | Where-Object { -not ($indexValues1 -contains $_) }
             if ($missmatchedIndexes2) {
                 foreach ($index in $missmatchedIndexes2) {
-                    $message = "Section row with Index '<b>$($index)</b>', $($currentSectionTableName) '<b>$((($content2 | Where-Object Index -like $index ).$currentSectionTableName))</b>' only exists in <b>$SBCName2</b>"
-                    Write-Warning "Row with Index: '$($index)' and $($currentSectionTableName): '$((($content2 | Where-Object Index -like $index ).$currentSectionTableName))' only exists in $($SBCName2)"
-                    $sectionDifferences.Add($message) | Out-Null
-                    $hasTableDiff = $true
+                    # If IncludeNameValidation is enabled, check if this entry can be matched by name before reporting as missing
+                    $skipMissingReport = $false
+                    if ($IncludeNameValidation) {
+                        $entryName = ($content2 | Where-Object { $_.Index -eq $index }).$currentSectionTableName
+                        $nameValues1 = $content1 | ForEach-Object { $_.$currentSectionTableName }
+                        if ($nameValues1 -contains $entryName) {
+                            $skipMissingReport = $true
+                        }
+                    }
+
+                    if (-not $skipMissingReport) {
+                        $message = "Section row with Index '<b>$($index)</b>', $($currentSectionTableName) '<b>$((($content2 | Where-Object Index -like $index ).$currentSectionTableName))</b>' only exists in <b>$SBCName2</b>"
+                        Write-Warning "Row with Index: '$($index)' and $($currentSectionTableName): '$((($content2 | Where-Object Index -like $index ).$currentSectionTableName))' only exists in $($SBCName2)"
+                        $sectionDifferences.Add($message) | Out-Null
+                        $hasTableDiff = $true
+                    }
                 }
             }
 
@@ -320,7 +360,37 @@ foreach ($sectionName in $commonSections) {
             foreach ($index in $matchedIndices) {
                 $row1 = $content1 | Where-Object { $_.Index -eq $index }
                 $row2 = $content2 | Where-Object { $_.Index -eq $index }
-                $rowDifferences = [System.Collections.ArrayList]@()
+
+                # If IncludeNameValidation is enabled and the name property differs, look for a matching name in the other table
+                if ($IncludeNameValidation -and $row1.$currentSectionTableName -ne $row2.$currentSectionTableName) {
+                    # Look for a row with the same name in the other table
+                    $matchingRowsByName = $content2 | Where-Object { $_.$currentSectionTableName -eq $row1.$currentSectionTableName }
+
+                    if ($matchingRowsByName) {
+                        # Check if there are multiple entries with the same name (duplicates)
+                        if ($matchingRowsByName -is [array] -and $matchingRowsByName.Count -gt 1) {
+                            # Multiple entries with same name found - use fallback to index-based comparison
+                            Write-Host "⚠️  Multiple entries named '$($row1.$currentSectionTableName)' found - using fallback to index-based comparison" -ForegroundColor Yellow
+
+                            # Add HTML message about duplicate fallback
+                            $duplicateMessage = "<span style='color: #856404; font-weight: bold;'>&#9888;&#65039; <strong>Duplicate Name Detected:</strong></span> Multiple entries named '<b>$($row1.$currentSectionTableName)</b>' found in target file. Using index-based comparison fallback for Index <b>$($index)</b>."
+                            $sectionDifferences.Add($duplicateMessage) | Out-Null
+                            $hasTableDiff = $true
+                            # Don't change $row2, keep the original index-based comparison
+                        } else {
+                            # Single matching entry found - use name-based matching
+                            $matchingRowByName = if ($matchingRowsByName -is [array]) { $matchingRowsByName[0] } else { $matchingRowsByName }
+                            Write-Host "✓ Name-based matching activated: '$($row1.$currentSectionTableName)' found at different indices (Index $($index) in $($SBCName1) ↔ Index $($matchingRowByName.Index) in $($SBCName2))" -ForegroundColor Cyan
+                            $row2 = $matchingRowByName
+
+                            # Add a note about the index difference with success indication
+                            $message = "<span style='color: #28a745;'><strong>Name-based match found:</strong></span> Entry '<b>$($row1.$currentSectionTableName)</b>' exists in both files but with different Index values: <b>$($index)</b> in $($SBCName1) vs <b>$($matchingRowByName.Index)</b> in $($SBCName2)"
+                            Write-Host "✓ Successfully matched entry '$($row1.$currentSectionTableName)' despite index difference: $($index) in $($SBCName1) vs $($matchingRowByName.Index) in $($SBCName2)" -ForegroundColor Green
+                            $sectionDifferences.Add($message) | Out-Null
+                            $hasTableDiff = $true
+                        }
+                    }
+                }                $rowDifferences = [System.Collections.ArrayList]@()
                 $processedProperties = @{}
 
                 foreach ($property in $currentProperties) {
@@ -346,19 +416,130 @@ foreach ($sectionName in $commonSections) {
                 }
             }
 
+            # If IncludeNameValidation is enabled, also check for entries that have the same name but different indices
+            if ($IncludeNameValidation) {
+                # Get all name values from both tables
+                $nameValues1 = $content1 | ForEach-Object { $_.$currentSectionTableName }
+                $nameValues2 = $content2 | ForEach-Object { $_.$currentSectionTableName }
 
+                # Find names that exist in both tables but haven't been compared yet (due to different indices)
+                $commonNames = $nameValues1 | Where-Object { $nameValues2 -contains $_ }
+
+                foreach ($name in $commonNames) {
+                    $rows1 = $content1 | Where-Object { $_.$currentSectionTableName -eq $name }
+                    $rows2 = $content2 | Where-Object { $_.$currentSectionTableName -eq $name }
+
+                    # Check for duplicate names - if found, skip name-based comparison for this name
+                    if (($rows1 -is [array] -and $rows1.Count -gt 1) -or ($rows2 -is [array] -and $rows2.Count -gt 1)) {
+                        Write-Host "⚠️  Duplicate name '$($name)' found in one or both files - skipping name-based comparison" -ForegroundColor Yellow
+                        continue
+                    }
+
+                    # Skip if we already compared these based on index matching
+                    $alreadyCompared = $false
+                    foreach ($tempRow1 in $rows1) {
+                        foreach ($tempRow2 in $rows2) {
+                            if ($tempRow1.Index -eq $tempRow2.Index) {
+                                $alreadyCompared = $true
+                                break
+                            }
+                        }
+                        if ($alreadyCompared) { break }
+                    }
+
+                    if (-not $alreadyCompared) {
+                        # Compare the first occurrence of each name
+                        $row1 = $rows1[0]
+                        $row2 = $rows2[0]
+
+                        # Check if we got actual objects or just strings (indicates a logic error elsewhere)
+                        if ($row1 -is [string] -or $row2 -is [string]) {
+                            # Skip this comparison as it's invalid - the filtering logic returned strings instead of objects
+                            continue
+                        }
+
+                        $rowDifferences = [System.Collections.ArrayList]@()
+                        $processedProperties = @{}
+
+                        foreach ($property in $currentProperties) {
+                            # Skip the name property itself and Index as we know they're different
+                            if ($property -ne $currentSectionTableName -and $property -ne "Index") {
+                                if ($row1.$property -ne $row2.$property -and -not $processedProperties.ContainsKey($property)) {
+                                    $rowDifferences.Add(@{Property = $property; Value1 = $row1.$property; Value2 = $row2.$property }) | Out-Null
+                                    $hasTableDiff = $true
+                                    $processedProperties[$property] = $true
+                                }
+                            }
+                        }
+
+                        if ($rowDifferences.Count -gt 0) {
+                            $htmlTable = "Entry with name '<b>$($name)</b>' (Index $($row1.Index) in $($SBCName1), Index $($row2.Index) in $($SBCName2)) has differences:<br>"
+                            Write-Warning "Entry with name '$($name)' (Index $($row1.Index) in $($SBCName1), Index $($row2.Index) in $($SBCName2)) has differences:"
+                            $htmlTable += "<table class='diff-table'><tr><th>Property</th><th>$($SBCName1)</th><th>$($SBCName2)</th></tr>"
+                            foreach ($diff in $rowDifferences) {
+                                $htmlTable += "<tr><td>$($diff.Property)</td><td>$($diff.Value1)</td><td>$($diff.Value2)</td></tr>"
+                                Write-Warning "$($diff.Property): $($diff.Value1) (in $($SBCName1)) vs $($diff.Value2) (in $($SBCName2))"
+                            }
+                            $htmlTable += "</table>"
+                            $sectionDifferences.Add($htmlTable) | Out-Null
+                        }
+                        else {
+                            # No differences found despite different indices - this is a successful name-based match
+                            # Capture index values immediately to avoid variable scope issues
+                            $index1 = $row1.Index
+                            $index2 = $row2.Index
+                            $message = "<span style='color: #28a745;'><strong>Perfect name-based match:</strong></span> Entry '<b>$($name)</b>' is identical in both files despite different Index values: <b>$($index1)</b> in $($SBCName1) vs <b>$($index2)</b> in $($SBCName2)"
+                            Write-Host "✓ Perfect match found for '$($name)' despite index difference: $($index1) in $($SBCName1) vs $($index2) in $($SBCName2)" -ForegroundColor Green
+                            $sectionDifferences.Add($message) | Out-Null
+                            $hasTableDiff = $true
+                        }
+                    }
+                }
+            }
         }
         else {
             $amountOfRows = $content1.Count
             $counter = 0
             while ($amountOfRows -ne $counter) {
-                $rowDifferences = [System.Collections.ArrayList]@()
+                $row1 = $content1[$counter]
+                $row2 = $content2[$counter]
+
+                # If IncludeNameValidation is enabled and the name property differs, look for a matching name in the other table
+                if ($IncludeNameValidation -and $row1.$currentSectionTableName -ne $row2.$currentSectionTableName) {
+                    # Look for a row with the same name in the other table
+                    $matchingRowsByName = $content2 | Where-Object { $_.$currentSectionTableName -eq $row1.$currentSectionTableName }
+
+                    if ($matchingRowsByName) {
+                        # Check if there are multiple entries with the same name (duplicates)
+                        if ($matchingRowsByName -is [array] -and $matchingRowsByName.Count -gt 1) {
+                            # Multiple entries with same name found - use fallback to index-based comparison
+                            Write-Host "⚠️  Multiple entries named '$($row1.$currentSectionTableName)' found - using fallback to index-based comparison" -ForegroundColor Yellow
+
+                            # Add HTML message about duplicate fallback
+                            $duplicateMessage = "<span style='color: #856404; font-weight: bold;'>&#9888;&#65039; <strong>Duplicate Name Detected:</strong></span> Multiple entries named '<b>$($row1.$currentSectionTableName)</b>' found in target file. Using index-based comparison fallback for Index <b>$($row1.Index)</b>."
+                            $sectionDifferences.Add($duplicateMessage) | Out-Null
+                            $hasTableDiff = $true
+                            # Don't change $row2, keep the original index-based comparison
+                        } else {
+                            # Single matching entry found - use name-based matching
+                            $matchingRowByName = if ($matchingRowsByName -is [array]) { $matchingRowsByName[0] } else { $matchingRowsByName }
+                            Write-Host "✓ Name-based matching activated: '$($row1.$currentSectionTableName)' found at different indices (Index $($row1.Index) in $($SBCName1) ↔ Index $($matchingRowByName.Index) in $($SBCName2))" -ForegroundColor Cyan
+                            $row2 = $matchingRowByName
+
+                            # Add a note about the index difference with success indication
+                            $message = "<span style='color: #28a745;'><strong>Name-based match found:</strong></span> Entry '<b>$($row1.$currentSectionTableName)</b>' exists in both files but with different Index values: <b>$($row1.Index)</b> in $($SBCName1) vs <b>$($matchingRowByName.Index)</b> in $($SBCName2)"
+                            Write-Host "✓ Successfully matched entry '$($row1.$currentSectionTableName)' despite index difference: $($row1.Index) in $($SBCName1) vs $($matchingRowByName.Index) in $($SBCName2)" -ForegroundColor Green
+                            $sectionDifferences.Add($message) | Out-Null
+                            $hasTableDiff = $true
+                        }
+                    }
+                }                $rowDifferences = [System.Collections.ArrayList]@()
                 $processedProperties = @{}
 
                 foreach ($property in $currentProperties) {
                     # Only process this property if it hasn't been processed before
-                    if ($content1[$counter].$property -ne $content2[$counter].$property -and -not $processedProperties.ContainsKey($property)) {
-                        $rowDifferences.Add(@{Property = $property; Value1 = $content1[$counter].$property; Value2 = $content2[$counter].$property }) | Out-Null
+                    if ($row1.$property -ne $row2.$property -and -not $processedProperties.ContainsKey($property)) {
+                        $rowDifferences.Add(@{Property = $property; Value1 = $row1.$property; Value2 = $row2.$property }) | Out-Null
                         $hasTableDiff = $true
                         # Mark this property as processed
                         $processedProperties[$property] = $true
@@ -366,8 +547,8 @@ foreach ($sectionName in $commonSections) {
                 }
 
                 if ($rowDifferences.Count -gt 0) {
-                    $htmlTable = "Section table '<b>$($sectionName)</b>', row with Index '<b>$($content1[$counter].Index)</b>', $($currentSectionTableName) '<b>$($content1[$counter].$($currentSectionTableName))</b>' has differences:<br>"
-                    Write-Warning "Section table '$($sectionName)', row with Index: '$($content1[$counter].Index)', $($currentSectionTableName): '$($content1[$counter].$($currentSectionTableName))' has differences:"
+                    $htmlTable = "Section table '<b>$($sectionName)</b>', row with Index '<b>$($row1.Index)</b>', $($currentSectionTableName) '<b>$($row1.$($currentSectionTableName))</b>' has differences:<br>"
+                    Write-Warning "Section table '$($sectionName)', row with Index: '$($row1.Index)', $($currentSectionTableName): '$($row1.$($currentSectionTableName))' has differences:"
                     $htmlTable += "<table class='diff-table'><tr><th>Property</th><th>$($SBCName1)</th><th>$($SBCName2)</th></tr>"
                     foreach ($diff in $rowDifferences) {
                         $htmlTable += "<tr><td>$($diff.Property)</td><td>$($diff.Value1)</td><td>$($diff.Value2)</td></tr>"
@@ -377,6 +558,88 @@ foreach ($sectionName in $commonSections) {
                     $sectionDifferences.Add($htmlTable) | Out-Null
                 }
                 $counter++
+            }
+
+            # If IncludeNameValidation is enabled, check for entries that exist by name but weren't compared due to different positioning
+            if ($IncludeNameValidation) {
+                # Get all name values from both tables
+                $nameValues1 = $content1 | ForEach-Object { $_.$currentSectionTableName }
+                $nameValues2 = $content2 | ForEach-Object { $_.$currentSectionTableName }
+
+                # Find names that exist in both tables
+                $commonNames = $nameValues1 | Where-Object { $nameValues2 -contains $_ }
+
+                # Track which names we've already compared
+                $comparedNames = @()
+
+                for ($i = 0; $i -lt $content1.Count; $i++) {
+                    $row1 = $content1[$i]
+                    $row2 = $content2[$i]
+
+                    if ($row1.$currentSectionTableName -eq $row2.$currentSectionTableName) {
+                        $comparedNames += $row1.$currentSectionTableName
+                    }
+                }
+
+                # For names that exist in both but weren't compared at the same index position
+                foreach ($name in $commonNames) {
+                    if ($name -notin $comparedNames) {
+                        $rows1ForName = $content1 | Where-Object { $_.$currentSectionTableName -eq $name }
+                        $rows2ForName = $content2 | Where-Object { $_.$currentSectionTableName -eq $name }
+
+                        # Check for duplicate names - if found, skip name-based comparison for this name
+                        if (($rows1ForName -is [array] -and $rows1ForName.Count -gt 1) -or ($rows2ForName -is [array] -and $rows2ForName.Count -gt 1)) {
+                            Write-Host "⚠️  Duplicate name '$($name)' found in one or both files - skipping name-based comparison" -ForegroundColor Yellow
+                            continue
+                        }
+
+                        $row1 = $rows1ForName | Select-Object -First 1
+                        $row2 = $rows2ForName | Select-Object -First 1
+
+                        $rowDifferences = [System.Collections.ArrayList]@()
+                        $processedProperties = @{}
+
+                        foreach ($property in $currentProperties) {
+                            # Skip the name property itself as we know they match
+                            if ($property -ne $currentSectionTableName) {
+                                if ($row1.$property -ne $row2.$property -and -not $processedProperties.ContainsKey($property)) {
+                                    $rowDifferences.Add(@{Property = $property; Value1 = $row1.$property; Value2 = $row2.$property }) | Out-Null
+                                    $hasTableDiff = $true
+                                    $processedProperties[$property] = $true
+                                }
+                            }
+                        }
+
+                        if ($rowDifferences.Count -gt 0) {
+                            $htmlTable = "Entry with name '<b>$($name)</b>' (Index $($row1.Index) in $($SBCName1), Index $($row2.Index) in $($SBCName2)) has differences:<br>"
+                            Write-Warning "Entry with name '$($name)' (Index $($row1.Index) in $($SBCName1), Index $($row2.Index) in $($SBCName2)) has differences:"
+                            $htmlTable += "<table class='diff-table'><tr><th>Property</th><th>$($SBCName1)</th><th>$($SBCName2)</th></tr>"
+                            foreach ($diff in $rowDifferences) {
+                                $htmlTable += "<tr><td>$($diff.Property)</td><td>$($diff.Value1)</td><td>$($diff.Value2)</td></tr>"
+                                Write-Warning "$($diff.Property): $($diff.Value1) (in $($SBCName1)) vs $($diff.Value2) (in $($SBCName2))"
+                            }
+                            $htmlTable += "</table>"
+                            $sectionDifferences.Add($htmlTable) | Out-Null
+                        }
+
+                        # Note the index difference - capture index values immediately to avoid variable scope issues
+                        $index1 = $row1.Index
+                        $index2 = $row2.Index
+                        if ($index1 -ne $index2) {
+                            if ($rowDifferences.Count -eq 0) {
+                                # Perfect match despite different indices
+                                $message = "<span style='color: #28a745;'><strong>Perfect name-based match:</strong></span> Entry '<b>$($name)</b>' is identical in both files despite different Index values: <b>$($index1)</b> in $($SBCName1) vs <b>$($index2)</b> in $($SBCName2)"
+                                Write-Host "✓ Perfect match found for '$($name)' despite index difference: $($index1) in $($SBCName1) vs $($index2) in $($SBCName2)" -ForegroundColor Green
+                            } else {
+                                # Match found but with some differences
+                                $message = "<span style='color: #ffc107;'><strong>Name-based match with differences:</strong></span> Entry '<b>$($name)</b>' found in both files with different Index values: <b>$($index1)</b> in $($SBCName1) vs <b>$($index2)</b> in $($SBCName2)"
+                                Write-Host "✓ Name-based match found for '$($name)' with index difference: $($index1) in $($SBCName1) vs $($index2) in $($SBCName2) (but content differs)" -ForegroundColor Yellow
+                            }
+                            $sectionDifferences.Add($message) | Out-Null
+                            $hasTableDiff = $true
+                        }
+                    }
+                }
             }
         }
     }
@@ -500,6 +763,22 @@ if ($differencesBySection.Count -gt 0) {
   .diff-table th {
     background-color: #f2f2f2;
   }
+  .success-message {
+    color: #28a745;
+    font-weight: bold;
+    background-color: #d4edda;
+    padding: 8px;
+    border-left: 4px solid #28a745;
+    margin: 10px 0;
+  }
+  .warning-message {
+    color: #856404;
+    font-weight: bold;
+    background-color: #fff3cd;
+    padding: 8px;
+    border-left: 4px solid #ffc107;
+    margin: 10px 0;
+  }
 </style>
 </head>
 <body>
@@ -507,7 +786,15 @@ if ($differencesBySection.Count -gt 0) {
 <h2>Comparison between '$($SBCName1)' and '$($SBCName2)'</h2>
 "@
 
-    $htmlBody = ""
+if ($IncludeNameValidation) {
+    $htmlHead += "<div style='background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 15px 0; border-radius: 5px;'>
+        <strong>&#8505; Name Validation Enabled:</strong> Table entries are compared by both index and name. Entries with matching names but different indices are automatically cross-referenced.
+    </div>"
+} else {
+    $htmlHead += "<div style='background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin: 15px 0; border-radius: 5px;'>
+        <strong>&#8505; Name Validation Disabled:</strong> Table entries are compared by index only. Use -IncludeNameValidation `$true for enhanced comparison.
+    </div>"
+}    $htmlBody = ""
     foreach ($section in $differencesBySection.Keys) {
         $htmlBody += "<h3>$($section)</h3>"
 
@@ -540,6 +827,15 @@ if ($differencesBySection.Count -gt 0) {
             elseif ($item -like "*is empty*") {
                 $category = "Empty Table"
             }
+            elseif ($item -like "*Perfect name-based match*") {
+                $category = "Successful Name-Based Matches"
+            }
+            elseif ($item -like "*Name-based match found*" -or $item -like "*Name-based match with differences*") {
+                $category = "Name-Based Index Corrections"
+            }
+            elseif ($item -like "*Duplicate Name Detected*") {
+                $category = "Duplicate Name Warnings"
+            }
 
             # Add to the appropriate category
             if (-not $categorizedDifferences.Contains($category)) {
@@ -550,6 +846,9 @@ if ($differencesBySection.Count -gt 0) {
 
         # Track the order of categories for consistent output
         $categoryOrder = @(
+            "Duplicate Name Warnings",
+            "Successful Name-Based Matches",
+            "Name-Based Index Corrections",
             "Section Mismatch",
             "Missing Parameters",
             "Parameter Value Mismatch",

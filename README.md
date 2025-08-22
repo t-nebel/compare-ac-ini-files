@@ -61,6 +61,7 @@ The script generates an HTML report highlighting all differences found between t
 | SBCIniFilePath2 | Path to second INI file |
 | SBCName2 | Display name for second SBC (used in the report) |
 | ReportFilePath | Path where the HTML report should be saved |
+| IncludeNameValidation | **[New]** Enable name-based comparison for table entries (Default: $false) |
 
 ## 🚀 Getting Started
 
@@ -71,9 +72,33 @@ The script generates an HTML report highlighting all differences found between t
 
 ## ⚠️ Current Limitations
 
-The script currently has difficulty handling mismatched indexes containing the same content. For example, if both INI files have an IP Profile named "Teams" with identical settings, but on the first SBC it's listed as index 0 and on the second as index 1, the script will show them as different.
+~~The script currently has difficulty handling mismatched indexes containing the same content. For example, if both INI files have an IP Profile named "Teams" with identical settings, but on the first SBC it's listed as index 0 and on the second as index 1, the script will show them as different.~~ ✅ **Resolved in v2.0**
 
+## 📅 Updates
 
+### 22.08.2025 - Major Feature Enhancement (v2.0)
+
+**Name-Based Validation & Enhanced Reporting**
+
+- **✅ New Parameter:** Added `-IncludeNameValidation` parameter to enable intelligent name-based comparison
+  - Automatically matches table entries by their names (e.g., IP Profile names) even when index positions differ
+  - Resolves the previous limitation where identical content at different indices was incorrectly flagged as different
+  
+- **✅ Enhanced Visual Feedback:**
+  - Console output now includes colored success indicators (✓) for matched entries
+  - Clear distinction between perfect matches and entries with differences
+  - Improved warning messages with detailed index position information
+
+**Usage with new feature:**
+```powershell
+.\Compare-ACSBCIniFiles.ps1  `
+    -SBCIniFilePath1 "C:\Temp\SBC1.ini"  `
+    -SBCName1 "Old Config File" `
+    -SBCIniFilePath2 "C:\Temp\SBC2.ini" `
+    -SBCName2 "New Config File" `
+    -IncludeNameValidation $true `
+    -ReportFilePath "C:\Temp\SBC-Comparison.html"
+```
 
 ---
 
