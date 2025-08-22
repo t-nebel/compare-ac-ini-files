@@ -242,9 +242,9 @@ if ($sectionsOnlyInSBC2) {
 #############################################
 Write-Output "`n--- Comparing Content of  Sections ---"
 if ($IncludeNameValidation) {
-    Write-Host "ℹ️  Name validation is ENABLED - Table entries will also be compared by name if indices differ" -ForegroundColor Cyan
+    Write-Host "ℹ️ Name validation is ENABLED - Table entries will also be compared by name if indices differ" -ForegroundColor Cyan
 } else {
-    Write-Host "ℹ️  Name validation is DISABLED - Table entries will only be compared by index" -ForegroundColor Gray
+    Write-Host "ℹ️ Name validation is DISABLED - Table entries will only be compared by index" -ForegroundColor Gray
 }
 $commonSections = $sectionComparison | Where-Object { $_.SideIndicator -eq '==' } | ForEach-Object { $_.InputObject }
 
@@ -370,17 +370,17 @@ foreach ($sectionName in $commonSections) {
                         # Check if there are multiple entries with the same name (duplicates)
                         if ($matchingRowsByName -is [array] -and $matchingRowsByName.Count -gt 1) {
                             # Multiple entries with same name found - use fallback to index-based comparison
-                            Write-Host "⚠️  Multiple entries named '$($row1.$currentSectionTableName)' found - using fallback to index-based comparison" -ForegroundColor Yellow
+                            Write-Host "⚠️ Multiple entries named '$($row1.$currentSectionTableName)' found - using fallback to index-based comparison" -ForegroundColor Yellow
 
                             # Add HTML message about duplicate fallback
-                            $duplicateMessage = "<span style='color: #856404; font-weight: bold;'>&#9888;&#65039; <strong>Duplicate Name Detected:</strong></span> Multiple entries named '<b>$($row1.$currentSectionTableName)</b>' found in target file. Using index-based comparison fallback for Index <b>$($index)</b>."
+                            $duplicateMessage = "<span style='color: #856404; font-weight: bold;'><strong>Duplicate Name Detected:</strong></span> Multiple entries named '<b>$($row1.$currentSectionTableName)</b>' found in target file. Using index-based comparison fallback for Index <b>$($index)</b>."
                             $sectionDifferences.Add($duplicateMessage) | Out-Null
                             $hasTableDiff = $true
                             # Don't change $row2, keep the original index-based comparison
                         } else {
                             # Single matching entry found - use name-based matching
                             $matchingRowByName = if ($matchingRowsByName -is [array]) { $matchingRowsByName[0] } else { $matchingRowsByName }
-                            Write-Host "✓ Name-based matching activated: '$($row1.$currentSectionTableName)' found at different indices (Index $($index) in $($SBCName1) ↔ Index $($matchingRowByName.Index) in $($SBCName2))" -ForegroundColor Cyan
+                            Write-Host "✓ Name-based matching activated: '$($row1.$currentSectionTableName)' found at different indices (Index $($index) in $($SBCName1) <-> Index $($matchingRowByName.Index) in $($SBCName2))" -ForegroundColor Cyan
                             $row2 = $matchingRowByName
 
                             # Add a note about the index difference with success indication
@@ -431,7 +431,7 @@ foreach ($sectionName in $commonSections) {
 
                     # Check for duplicate names - if found, skip name-based comparison for this name
                     if (($rows1 -is [array] -and $rows1.Count -gt 1) -or ($rows2 -is [array] -and $rows2.Count -gt 1)) {
-                        Write-Host "⚠️  Duplicate name '$($name)' found in one or both files - skipping name-based comparison" -ForegroundColor Yellow
+                        Write-Host "⚠️ Duplicate name '$($name)' found in one or both files - skipping name-based comparison" -ForegroundColor Yellow
                         continue
                     }
 
@@ -513,17 +513,17 @@ foreach ($sectionName in $commonSections) {
                         # Check if there are multiple entries with the same name (duplicates)
                         if ($matchingRowsByName -is [array] -and $matchingRowsByName.Count -gt 1) {
                             # Multiple entries with same name found - use fallback to index-based comparison
-                            Write-Host "⚠️  Multiple entries named '$($row1.$currentSectionTableName)' found - using fallback to index-based comparison" -ForegroundColor Yellow
+                            Write-Host "[WARNING] Multiple entries named '$($row1.$currentSectionTableName)' found - using fallback to index-based comparison" -ForegroundColor Yellow
 
                             # Add HTML message about duplicate fallback
-                            $duplicateMessage = "<span style='color: #856404; font-weight: bold;'>&#9888;&#65039; <strong>Duplicate Name Detected:</strong></span> Multiple entries named '<b>$($row1.$currentSectionTableName)</b>' found in target file. Using index-based comparison fallback for Index <b>$($row1.Index)</b>."
+                            $duplicateMessage = "<span style='color: #856404; font-weight: bold;'><strong>Duplicate Name Detected:</strong></span> Multiple entries named '<b>$($row1.$currentSectionTableName)</b>' found in target file. Using index-based comparison fallback for Index <b>$($row1.Index)</b>."
                             $sectionDifferences.Add($duplicateMessage) | Out-Null
                             $hasTableDiff = $true
                             # Don't change $row2, keep the original index-based comparison
                         } else {
                             # Single matching entry found - use name-based matching
                             $matchingRowByName = if ($matchingRowsByName -is [array]) { $matchingRowsByName[0] } else { $matchingRowsByName }
-                            Write-Host "✓ Name-based matching activated: '$($row1.$currentSectionTableName)' found at different indices (Index $($row1.Index) in $($SBCName1) ↔ Index $($matchingRowByName.Index) in $($SBCName2))" -ForegroundColor Cyan
+                            Write-Host "✓ Name-based matching activated: '$($row1.$currentSectionTableName)' found at different indices (Index $($row1.Index) in $($SBCName1) <-> Index $($matchingRowByName.Index) in $($SBCName2))" -ForegroundColor Cyan
                             $row2 = $matchingRowByName
 
                             # Add a note about the index difference with success indication
@@ -589,7 +589,7 @@ foreach ($sectionName in $commonSections) {
 
                         # Check for duplicate names - if found, skip name-based comparison for this name
                         if (($rows1ForName -is [array] -and $rows1ForName.Count -gt 1) -or ($rows2ForName -is [array] -and $rows2ForName.Count -gt 1)) {
-                            Write-Host "⚠️  Duplicate name '$($name)' found in one or both files - skipping name-based comparison" -ForegroundColor Yellow
+                            Write-Host "⚠️ Duplicate name '$($name)' found in one or both files - skipping name-based comparison" -ForegroundColor Yellow
                             continue
                         }
 
@@ -633,7 +633,7 @@ foreach ($sectionName in $commonSections) {
                             } else {
                                 # Match found but with some differences
                                 $message = "<span style='color: #ffc107;'><strong>Name-based match with differences:</strong></span> Entry '<b>$($name)</b>' found in both files with different Index values: <b>$($index1)</b> in $($SBCName1) vs <b>$($index2)</b> in $($SBCName2)"
-                                Write-Host "✓ Name-based match found for '$($name)' with index difference: $($index1) in $($SBCName1) vs $($index2) in $($SBCName2) (but content differs)" -ForegroundColor Yellow
+                                Write-Host "ℹ️ Name-based match found for '$($name)' with index difference: $($index1) in $($SBCName1) vs $($index2) in $($SBCName2) (but content differs)" -ForegroundColor Yellow
                             }
                             $sectionDifferences.Add($message) | Out-Null
                             $hasTableDiff = $true
@@ -788,14 +788,24 @@ if ($differencesBySection.Count -gt 0) {
 
 if ($IncludeNameValidation) {
     $htmlHead += "<div style='background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 15px 0; border-radius: 5px;'>
-        <strong>&#8505; Name Validation Enabled:</strong> Table entries are compared by both index and name. Entries with matching names but different indices are automatically cross-referenced.
+        <strong>[INFO] Name Validation Enabled:</strong> Table entries are compared by both index and name. Entries with matching names but different indices are automatically cross-referenced.
     </div>"
 } else {
     $htmlHead += "<div style='background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin: 15px 0; border-radius: 5px;'>
-        <strong>&#8505; Name Validation Disabled:</strong> Table entries are compared by index only. Use -IncludeNameValidation `$true for enhanced comparison.
+        <strong>[INFO] Name Validation Disabled:</strong> Table entries are compared by index only. Use -IncludeNameValidation `$true for enhanced comparison.
     </div>"
 }    $htmlBody = ""
+    # Initialize script-level variables for tracking swapped entries
+    $script:hasSwappedEntries = $false
+    $script:swappedSectionName = ""
+    $script:swappedEntryNames = @()
+
     foreach ($section in $differencesBySection.Keys) {
+        # Reset swapped entries tracking for each section
+        $script:hasSwappedEntries = $false
+        $script:swappedSectionName = ""
+        $script:swappedEntryNames = @()
+
         $htmlBody += "<h3>$($section)</h3>"
 
         # Group differences by category within each section
@@ -862,11 +872,156 @@ if ($IncludeNameValidation) {
         # Create a table for each category in the section, maintaining a logical order
         foreach ($cat in $categoryOrder) {
             if ($categorizedDifferences.Contains($cat)) {
-                $htmlBody += "<table class='report'><tr><th>$cat</th></tr>"
-                foreach ($item in $categorizedDifferences[$cat]) {
-                    $htmlBody += "<tr class='difference'><td>$($item)</td></tr>"
+                # Special handling for Name-Based Index Corrections to detect swapped entries
+                if ($cat -eq "Name-Based Index Corrections") {
+                    $swappedEntries = @{}
+                    $regularCorrections = @()
+
+                    # Parse the corrections to detect swapped pairs
+                    foreach ($item in $categorizedDifferences[$cat]) {
+                        if ($item -match "Entry '<b>([^']+)</b>' exists in both files but with different Index values: <b>(\d+)</b> in ([^v]+) vs <b>(\d+)</b> in (.+)") {
+                            $entryName = $matches[1]
+                            $index1 = $matches[2]
+                            $index2 = $matches[4]
+
+                            if (-not $swappedEntries.ContainsKey($entryName)) {
+                                $swappedEntries[$entryName] = @{
+                                    Index1 = $index1
+                                    Index2 = $index2
+                                }
+                            }
+                        } elseif ($item -match "Entry '<b>([^']+)</b>' found in both files with different Index values: <b>(\d+)</b> in ([^v]+) vs <b>(\d+)</b> in (.+)") {
+                            $entryName = $matches[1]
+                            $index1 = $matches[2]
+                            $index2 = $matches[4]
+
+                            if (-not $swappedEntries.ContainsKey($entryName)) {
+                                $swappedEntries[$entryName] = @{
+                                    Index1 = $index1
+                                    Index2 = $index2
+                                }
+                            }
+                        } else {
+                            $regularCorrections += $item
+                        }
+                    }
+
+                    # Check if we have exactly 2 entries that are swapped
+                    if ($swappedEntries.Count -eq 2) {
+                        $entries = $swappedEntries.Keys | Sort-Object
+                        $entry1 = $entries[0]
+                        $entry2 = $entries[1]
+
+                        # Check if they are truly swapped (entry1's index1 = entry2's index2 and vice versa)
+                        if ($swappedEntries[$entry1].Index1 -eq $swappedEntries[$entry2].Index2 -and
+                            $swappedEntries[$entry1].Index2 -eq $swappedEntries[$entry2].Index1) {
+
+                            # Mark that we found swapped entries for this section
+                            $script:hasSwappedEntries = $true
+                            $script:swappedSectionName = $section
+                            $script:swappedEntryNames = @($entry1, $entry2)
+
+                            # Generate special swapped entries display
+                            $htmlBody += "<div class='warning-message'>"
+                            $htmlBody += "<strong>Index Order Swapped:</strong> The entries are arranged in different order in the two files."
+                            $htmlBody += "</div>"
+                            $htmlBody += "<table class='report'>"
+                            $htmlBody += "<tr><th>Entry Comparison</th></tr>"
+                            $htmlBody += "<tr class='difference'>"
+                            $htmlBody += "<td>"
+                            $htmlBody += "<strong>Swapped Index Assignment Detected:</strong><br>"
+                            $htmlBody += "<table class='diff-table' style='margin-top: 10px;'>"
+                            $htmlBody += "<tr><th>Entry</th><th>$($SBCName1) (Index)</th><th>$($SBCName2) (Index)</th></tr>"
+                            $htmlBody += "<tr>"
+                            $htmlBody += "<td><strong>$($entry1)</strong></td>"
+                            $htmlBody += "<td>Index $($swappedEntries[$entry1].Index1)</td>"
+                            $htmlBody += "<td>Index $($swappedEntries[$entry1].Index2)</td>"
+                            $htmlBody += "</tr>"
+                            $htmlBody += "<tr>"
+                            $htmlBody += "<td><strong>$($entry2)</strong></td>"
+                            $htmlBody += "<td>Index $($swappedEntries[$entry2].Index1)</td>"
+                            $htmlBody += "<td>Index $($swappedEntries[$entry2].Index2)</td>"
+                            $htmlBody += "</tr>"
+                            $htmlBody += "</table>"
+                            $htmlBody += "<div style='margin-top: 10px; padding: 8px; background-color: #e7f3ff; border-left: 4px solid #0066cc;'>"
+                            $htmlBody += "<strong>Explanation:</strong> The entries $($entry1) and $($entry2) are functionally identical, "
+                            $htmlBody += "but their index positions are swapped in the two files."
+                            $htmlBody += "</div>"
+                            $htmlBody += "</td>"
+                            $htmlBody += "</tr>"
+                            $htmlBody += "</table>"
+
+                            # Show any additional regular corrections if they exist
+                            if ($regularCorrections.Count -gt 0) {
+                                $htmlBody += "<table class='report'><tr><th>Additional Index Corrections</th></tr>"
+                                foreach ($item in $regularCorrections) {
+                                    $htmlBody += "<tr class='difference'><td>$($item)</td></tr>"
+                                }
+                                $htmlBody += "</table>"
+                            }
+                        } else {
+                            # Not a simple swap, use regular display
+                            $htmlBody += "<table class='report'><tr><th>$cat</th></tr>"
+                            foreach ($item in $categorizedDifferences[$cat]) {
+                                $htmlBody += "<tr class='difference'><td>$($item)</td></tr>"
+                            }
+                            $htmlBody += "</table>"
+                        }
+                    } else {
+                        # Not exactly 2 entries or not swapped, use regular display
+                        $htmlBody += "<table class='report'><tr><th>$cat</th></tr>"
+                        foreach ($item in $categorizedDifferences[$cat]) {
+                            $htmlBody += "<tr class='difference'><td>$($item)</td></tr>"
+                        }
+                        $htmlBody += "</table>"
+                    }
+                } elseif ($cat -eq "Different Row Values" -and $script:hasSwappedEntries -and $script:swappedSectionName -eq $section) {
+                    # Filter out differences that are only about index swapping for the swapped entries
+                    $filteredItems = @()
+                    foreach ($item in $categorizedDifferences[$cat]) {
+                        $shouldSkip = $false
+                        foreach ($swappedName in $script:swappedEntryNames) {
+                            if ($item -like "*$swappedName*" -and $item -like "*Index*" -and ($item -like "*has differences*")) {
+                                # Check if this item only shows Index differences for swapped entries
+                                if ($item -match "Section table.*Name '<b>([^']+)</b>' has differences.*<tr><td>Index</td>" -and $matches[1] -eq $swappedName) {
+                                    # Count number of <tr><td> entries - if only Index, skip it
+                                    $trCount = ($item | Select-String "<tr><td>" -AllMatches).Matches.Count
+                                    if ($trCount -eq 1) {
+                                        $shouldSkip = $true
+                                        break
+                                    }
+                                }
+                                elseif ($item -match "Entry with name '<b>([^']+)</b>'.*has differences.*<tr><td>Index</td>" -and $matches[1] -eq $swappedName) {
+                                    # Count number of <tr><td> entries - if only Index, skip it
+                                    $trCount = ($item | Select-String "<tr><td>" -AllMatches).Matches.Count
+                                    if ($trCount -eq 1) {
+                                        $shouldSkip = $true
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                        if (-not $shouldSkip) {
+                            $filteredItems += $item
+                        }
+                    }
+
+                    # Only show the table if there are remaining items after filtering
+                    if ($filteredItems.Count -gt 0) {
+                        $htmlBody += "<table class='report'><tr><th>$cat</th></tr>"
+                        foreach ($item in $filteredItems) {
+                            $htmlBody += "<tr class='difference'><td>$($item)</td></tr>"
+                        }
+                        $htmlBody += "</table>"
+                    }
+                } else {
+                    # Regular category handling
+                    $htmlBody += "<table class='report'><tr><th>$cat</th></tr>"
+                    foreach ($item in $categorizedDifferences[$cat]) {
+                        $htmlBody += "<tr class='difference'><td>$($item)</td></tr>"
+                    }
+                    $htmlBody += "</table>"
                 }
-                $htmlBody += "</table>"
                 $htmlBody += "<br>" # Add space between tables
             }
         }
