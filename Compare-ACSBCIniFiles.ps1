@@ -55,6 +55,35 @@ param (
 #region Functions
 ########################################################################
 
+    #region Helper Functions
+    ##############################
+
+    # Splits a comma-delimited INI table row value, respecting commas inside quoted strings
+    function Split-IniTableRow {
+        param([string]$Line)
+        $fields = [System.Collections.ArrayList]@()
+        $current = [System.Text.StringBuilder]::new()
+        $inQuotes = $false
+        for ($i = 0; $i -lt $Line.Length; $i++) {
+            $char = $Line[$i]
+            if ($char -eq '"') {
+                $inQuotes = -not $inQuotes
+                $current.Append($char) | Out-Null
+            }
+            elseif ($char -eq ',' -and -not $inQuotes) {
+                $fields.Add($current.ToString().Trim()) | Out-Null
+                $current.Clear() | Out-Null
+            }
+            else {
+                $current.Append($char) | Out-Null
+            }
+        }
+        $fields.Add($current.ToString().Trim()) | Out-Null
+        return $fields.ToArray()
+    }
+
+    #endregion Helper Functions
+
 # Function to parse an INI file into an array of PSCustomObjects (one object per section)
 function ConvertFrom-IniData {
     [CmdletBinding()]
@@ -129,7 +158,7 @@ function ConvertFrom-IniData {
             $rowIndex = $matches[2]
             $rowData = $matches[3]
 
-            $rowValues = $rowData.Split(',') | ForEach-Object { $_.Trim() }
+            $rowValues = Split-IniTableRow -Line $rowData
             $rowObject = [ordered]@{}
 
             # Add the index as the first column
